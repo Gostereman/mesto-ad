@@ -4,7 +4,7 @@
 
 ## Ссылка на проект
 
-[Открыть проект](https://gostereman.github.io/mesto-production/)
+[Открыть проект](https://gostereman.github.io/mesto-ad/)
 
 ## Команды
 
