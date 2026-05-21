@@ -5,7 +5,10 @@ import {
   closeModalWindow,
   setupModalOverlayClose,
 } from "./components/modal.js";
-import { enableValidation, clearValidation } from "./components/validation.js";
+import {
+  enableValidation,
+  clearValidation,
+} from "./components/validation.js";
 import {
   getUserInfo,
   getCardList,
@@ -16,7 +19,6 @@ import {
   changeLikeCardStatus,
 } from "./components/api.js";
 
-// ---- Конфигурация валидации ----
 const validationConfig = {
   formSelector: ".popup__form",
   inputSelector: ".popup__input",
@@ -26,15 +28,16 @@ const validationConfig = {
   errorClass: "popup__error_visible",
 };
 
-// ---- DOM: профиль ----
 const profileName = document.querySelector(".profile__title");
 const profileDescription = document.querySelector(".profile__description");
 const profileAvatar = document.querySelector(".profile__image");
+const profileAvatarContainer = document.querySelector(
+  ".profile__image-container"
+);
 const cardsContainer = document.querySelector(".places__list");
 
-// ---- DOM: попап редактирования профиля ----
 const profileEditButton = document.querySelector(".profile__edit-button");
-const profileFormModal = document.querySelector(".popup_type_edit-avatar");
+const profileFormModal = document.querySelector(".popup_type_edit");
 const profileForm = profileFormModal.querySelector(".popup__form");
 const profileTitleInput = profileForm.querySelector(
   ".popup__input_type_name"
@@ -43,7 +46,6 @@ const profileDescriptionInput = profileForm.querySelector(
   ".popup__input_type_description"
 );
 
-// ---- DOM: попап добавления карточки ----
 const addCardButton = document.querySelector(".profile__add-button");
 const addCardModal = document.querySelector(".popup_type_new-card");
 const addCardForm = addCardModal.querySelector(".popup__form");
@@ -52,32 +54,25 @@ const cardNameInput = addCardForm.querySelector(
 );
 const cardLinkInput = addCardForm.querySelector(".popup__input_type_url");
 
-// ---- DOM: попап просмотра изображения ----
 const cardImageModal = document.querySelector(".popup_type_image");
 const cardModalImage = cardImageModal.querySelector(".popup__image");
 const cardModalCaption = cardImageModal.querySelector(".popup__caption");
 
-// ---- DOM: попап обновления аватара ----
-const avatarContainer = document.querySelector(".profile__image-container");
-const avatarModal = document.querySelector(".popup_type_avatar");
+const avatarModal = document.querySelector(".popup_type_edit-avatar");
 const avatarForm = avatarModal.querySelector(".popup__form");
 const avatarInput = avatarForm.querySelector(".popup__input_type_avatar");
 
-// ---- DOM: попап удаления карточки (опционально) ----
 const deleteCardModal = document.querySelector(".popup_type_remove-card");
-const deleteCardForm = deleteCardModal?.querySelector(".popup__form");
+const deleteCardForm = deleteCardModal.querySelector(".popup__form");
 
-// ---- Состояние ----
 let currentUserId = null;
 let cardToDelete = null;
 let cardElementToDelete = null;
 
-// ---- Утилита: переключение текста кнопки ----
 const setButtonLoadingState = (button, isLoading, loadingText, defaultText) => {
   button.textContent = isLoading ? loadingText : defaultText;
 };
 
-// ---- Обработчики карточек ----
 const handleCardImageClick = (cardData) => {
   cardModalImage.src = cardData.link;
   cardModalImage.alt = cardData.name;
@@ -98,18 +93,11 @@ const handleLikeCard = (cardId, likeButton, likeCountElement) => {
 };
 
 const handleDeleteCard = (cardId, cardElement) => {
-  if (deleteCardModal) {
-    cardToDelete = cardId;
-    cardElementToDelete = cardElement;
-    openModalWindow(deleteCardModal);
-  } else {
-    deleteCard(cardId)
-      .then(() => cardElement.remove())
-      .catch((err) => console.log(err));
-  }
+  cardToDelete = cardId;
+  cardElementToDelete = cardElement;
+  openModalWindow(deleteCardModal);
 };
 
-// ---- Обработчики форм ----
 const handleProfileFormSubmit = (evt) => {
   evt.preventDefault();
   const submitButton = profileForm.querySelector(".popup__button");
@@ -162,6 +150,7 @@ const handleAvatarFormSubmit = (evt) => {
   updateAvatar({ avatar: avatarInput.value })
     .then((userData) => {
       profileAvatar.style.backgroundImage = `url(${userData.avatar})`;
+      avatarForm.reset();
       closeModalWindow(avatarModal);
     })
     .catch((err) => console.log(err))
@@ -170,28 +159,24 @@ const handleAvatarFormSubmit = (evt) => {
     });
 };
 
-// ---- Обработчик удаления (с попапом подтверждения) ----
-if (deleteCardForm) {
-  deleteCardForm.addEventListener("submit", (evt) => {
-    evt.preventDefault();
-    const submitButton = deleteCardForm.querySelector(".popup__button");
-    setButtonLoadingState(submitButton, true, "Удаление...", "Да");
+const handleDeleteCardFormSubmit = (evt) => {
+  evt.preventDefault();
+  const submitButton = deleteCardForm.querySelector(".popup__button");
+  setButtonLoadingState(submitButton, true, "Удаление...", "Да");
 
-    deleteCard(cardToDelete)
-      .then(() => {
-        cardElementToDelete.remove();
-        closeModalWindow(deleteCardModal);
-        cardToDelete = null;
-        cardElementToDelete = null;
-      })
-      .catch((err) => console.log(err))
-      .finally(() => {
-        setButtonLoadingState(submitButton, false, "Удаление...", "Да");
-      });
-  });
-}
+  deleteCard(cardToDelete)
+    .then(() => {
+      cardElementToDelete.remove();
+      closeModalWindow(deleteCardModal);
+      cardToDelete = null;
+      cardElementToDelete = null;
+    })
+    .catch((err) => console.log(err))
+    .finally(() => {
+      setButtonLoadingState(submitButton, false, "Удаление...", "Да");
+    });
+};
 
-// ---- Открытие попапов ----
 profileEditButton.addEventListener("click", () => {
   profileTitleInput.value = profileName.textContent;
   profileDescriptionInput.value = profileDescription.textContent;
@@ -205,18 +190,13 @@ addCardButton.addEventListener("click", () => {
   openModalWindow(addCardModal);
 });
 
-avatarContainer.addEventListener("click", () => {
+profileAvatarContainer.addEventListener("click", () => {
   avatarForm.reset();
   clearValidation(avatarForm, validationConfig);
   openModalWindow(avatarModal);
 });
 
-// ---- Отправка форм ----
-profileForm.addEventListener("submit", handleProfileFormSubmit);
-addCardForm.addEventListener("submit", handleAddCardFormSubmit);
-avatarForm.addEventListener("submit", handleAvatarFormSubmit);
 
-// ---- Закрытие попапов ----
 document.querySelectorAll(".popup__close").forEach((button) => {
   button.addEventListener("click", () => {
     closeModalWindow(button.closest(".popup"));
@@ -225,10 +205,13 @@ document.querySelectorAll(".popup__close").forEach((button) => {
 
 document.querySelectorAll(".popup").forEach(setupModalOverlayClose);
 
-// ---- Включение валидации ----
+profileForm.addEventListener("submit", handleProfileFormSubmit);
+addCardForm.addEventListener("submit", handleAddCardFormSubmit);
+avatarForm.addEventListener("submit", handleAvatarFormSubmit);
+deleteCardForm.addEventListener("submit", handleDeleteCardFormSubmit);
+
 enableValidation(validationConfig);
 
-// ---- Загрузка данных с сервера ----
 Promise.all([getCardList(), getUserInfo()])
   .then(([cards, userData]) => {
     currentUserId = userData._id;
